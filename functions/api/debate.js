@@ -1,3 +1,22 @@
+function normalizePosition(agent = {}) {
+  const explicit = String(agent.position || '').trim();
+  if (explicit === '긍정') return '긍정';
+  if (explicit === '부정') return '부정';
+
+  const text = `${explicit} ${agent.stance || ''} ${agent.message || ''}`;
+
+  if (/(반대|부정|우려|위험|문제|불가|금지|하지\s*말|말아야|안\s*돼|안돼|별로|싫|손해|악화|부담|깨질|깨진|어렵|비추천|막아야|줄여야)/i.test(text)) {
+    return '부정';
+  }
+
+  if (/(찬성|긍정|허용|가능|괜찮|좋|오케이|ok|추천|필요|도움|효율|해도\s*됨|해도\s*된다|하면\s*된다|해야\s*한다|하자|쉬어|쉬는|자도\s*된다|자는\s*게|유지)/i.test(text)) {
+    return '긍정';
+  }
+
+  // 모델이 애매한 표현을 내더라도 UI에는 반드시 둘 중 하나가 보이게 한다.
+  return '긍정';
+}
+
 export async function onRequestPost(context) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
 
@@ -43,20 +62,20 @@ MZ 모드 추가 규칙: 각 발언은 가능하면 8~24자, 최대 32자. 한 �
 5) expert: 세대 차이를 과장하지 않도록 균형을 잡고 사실 하나만 보완.`,
 
       chaos: `말투: 짧고 직설적. 서로 눈치 보지 않고 반박한다. 다만 모욕, 비하, 욕설은 금지.
-각 패널은 애매하게 타협하기보다 자기 입장을 확실히 말한다. 문장은 짧고 punchy하게.
+각 패널은 애매하게 타협하기보다 자기 입장을 확실히 말한다.
 1) p1: 극강 워라밸러. 삶과 휴식을 최우선.
 2) p2: 성과주의자. 속도와 결과를 최우선.
 3) p3: 눈치 만렙 관찰자. 실제 회사 분위기와 관계 리스크를 바로 지적.
 4) p4: 전통파 상사. 기존 관행, 책임, 규율 중시.
 5) expert: 팩트체커. 과장을 한 문장으로 정리하고 현실 조건을 짚는다.`
     };
-    const jury = modePrompts[mode] || modePrompts.default;
 
+    const jury = modePrompts[mode] || modePrompts.default;
     const prompt = `당신은 회사에서 가볍게 즐기는 AI 원탁회의의 진행자다.
 주제: ${topic}
 배심원단 모드: ${mode}
 사용자 개입: ${intervention || '(첫 라운드라 없음)'}
-이전 맥락(있다면): ${JSON.stringify(history).slice(0, 4000)}
+이전 맥락: ${JSON.stringify(history).slice(0, 4000)}
 
 아래 5명의 인물을 서로 다른 관점으로 토론시켜라.
 ${jury}
@@ -64,37 +83,32 @@ ${jury}
 공통 규칙:
 - 사내 행사 영상에서 한눈에 읽히도록 짧게 쓴다.
 - MZ 모드가 아니라면 각 발언은 1문장, 보통 18~38자, 최대 48자.
-- MZ 모드는 위의 별도 길이 규칙을 최우선으로 적용한다.
-- 첫 부분에서 바로 입장을 드러낸다.
-- 이유는 많아도 하나만. 서론, 반복, 완충 표현은 최대한 없앤다.
-- 서로 똑같은 결론을 말하지 않는다. 최소 2명은 분명히 다른 시각을 보인다.
-- 각 발언에는 position을 반드시 붙인다. 값은 정확히 "긍정" 또는 "부정" 둘 중 하나만 사용한다.
-- position의 의미: 주제나 제안에 대체로 찬성·수용하면 "긍정", 반대·우려·비판하면 "부정"이다. 비찬반형 질문도 발언의 전체 태도를 둘 중 가까운 쪽으로 분류한다.
-- 토론답게 가능하면 한 라운드 안에 "긍정"과 "부정"이 모두 나오게 한다. 사실을 왜곡해서 억지 균형을 만들지는 않는다.
-- 사용자가 개입했다면 최소 2명은 사용자의 말에 직접 반응한다.
-- 전문가는 주제에 맞는 역할명을 사용한다. 예: 조직문화 컨설턴트, 커피 전문가, 노동법 전문가, 수면 전문가.
-- 화면에 없는 정확한 나이는 새로 만들지 않는다.
-- 세대/연령 고정관념을 사실처럼 단정하지 않는다.
+- MZ 모드는 별도 길이 규칙을 최우선 적용한다.
+- 이유는 하나만 말한다.
+- 최소 2명은 다른 시각을 보인다.
+- 각 발언의 position은 반드시 정확히 "긍정" 또는 "부정" 둘 중 하나다.
+- 주제/제안에 찬성·수용하면 긍정, 반대·우려·비판하면 부정이다.
+- 비찬반형 질문도 발언의 전체 태도를 둘 중 가까운 쪽으로 분류한다.
+- 사용자가 개입했다면 최소 2명은 그 말에 직접 반응한다.
+- 전문가는 주제에 맞는 역할명을 쓴다.
 - 전문용어와 논문식 인용은 피한다.
-- 확실하지 않은 사실은 단정하지 않는다.
 
 반드시 JSON 하나만 출력한다. 마크다운 금지.
-형식:
 {
   "expertRole":"주제에 맞는 전문가 직업",
   "agents":[
-    {"id":"p1","position":"긍정","stance":"2~5글자 입장","message":"아주 짧은 발언"},
-    {"id":"p2","position":"부정","stance":"2~5글자 입장","message":"아주 짧은 발언"},
-    {"id":"p3","position":"긍정 또는 부정","stance":"2~5글자 입장","message":"아주 짧은 발언"},
-    {"id":"p4","position":"긍정 또는 부정","stance":"2~5글자 입장","message":"아주 짧은 발언"},
-    {"id":"expert","position":"긍정 또는 부정","stance":"2~5글자 입장","message":"아주 짧은 발언"}
+    {"id":"p1","position":"긍정","stance":"짧은 입장","message":"아주 짧은 발언"},
+    {"id":"p2","position":"부정","stance":"짧은 입장","message":"아주 짧은 발언"},
+    {"id":"p3","position":"긍정 또는 부정","stance":"짧은 입장","message":"아주 짧은 발언"},
+    {"id":"p4","position":"긍정 또는 부정","stance":"짧은 입장","message":"아주 짧은 발언"},
+    {"id":"expert","position":"긍정 또는 부정","stance":"짧은 입장","message":"아주 짧은 발언"}
   ]
 }`;
 
     const aiRes = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${context.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -126,6 +140,12 @@ ${jury}
       if (!match) throw new Error('No JSON in model response');
       parsed = JSON.parse(match[0]);
     }
+
+    if (!Array.isArray(parsed.agents)) parsed.agents = [];
+    parsed.agents = parsed.agents.map(agent => ({
+      ...agent,
+      position: normalizePosition(agent)
+    }));
 
     return new Response(JSON.stringify(parsed), { status: 200, headers });
   } catch (error) {
