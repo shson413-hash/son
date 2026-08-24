@@ -52,26 +52,29 @@ ${jury}
 중요 규칙:
 - 정확한 나이(예: 26세, 37세)는 절대 만들지 말고 20대/30대/40대/50대처럼 연령대만 사용한다.
 - 인물의 이름은 새로 만들지 말고 화면에 표시되는 역할 자체로 말하게 한다.
-- 목적은 사내 행사에서 재미있게 볼 수 있는 짧은 토론이다.
-- 말투는 자연스럽고 각 발언은 1~3문장.
+- 목적은 사내 행사에서 재미있게 볼 수 있는 매우 짧은 토론이다.
+- 각 발언은 핵심만 말한다. 반드시 1~2문장, 가능하면 35~70자 정도로 쓴다.
+- 같은 뜻을 반복하거나 배경 설명을 길게 붙이지 않는다.
+- 첫 문장에 입장을 먼저 말하고, 필요하면 둘째 문장에 이유 하나만 붙인다.
 - 전문용어와 논문식 인용은 피한다.
 - 확실하지 않은 사실은 단정하지 않는다.
 - 세대/연령 고정관념을 사실처럼 단정하지 않는다. 모드는 '관점 역할극'일 뿐이다.
 - 다섯 명이 무조건 합의할 필요는 없다.
 - 사용자가 중간에 의견을 냈다면 최소 2명은 그 의견에 직접 반응한다.
+- moderator의 최종 summary도 1문장으로 짧게 쓴다.
 
 반드시 JSON 하나만 출력한다. 마크다운 금지.
 형식:
 {
   "expertRole":"주제에 맞는 전문가 직업",
   "agents":[
-    {"id":"p1","stance":"짧은 입장","message":"발언"},
-    {"id":"p2","stance":"짧은 입장","message":"발언"},
-    {"id":"p3","stance":"짧은 입장","message":"발언"},
-    {"id":"p4","stance":"짧은 입장","message":"발언"},
-    {"id":"expert","stance":"짧은 입장","message":"발언"}
+    {"id":"p1","stance":"짧은 입장","message":"1~2문장의 짧은 발언"},
+    {"id":"p2","stance":"짧은 입장","message":"1~2문장의 짧은 발언"},
+    {"id":"p3","stance":"짧은 입장","message":"1~2문장의 짧은 발언"},
+    {"id":"p4","stance":"짧은 입장","message":"1~2문장의 짧은 발언"},
+    {"id":"expert","stance":"짧은 입장","message":"1~2문장의 짧은 발언"}
   ],
-  "verdict":{"headline":"한 줄 결론","summary":"2문장 이내 요약","leaning":"예: 조건부 합의/팽팽/찬성 우세"}
+  "verdict":{"headline":"한 줄 결론","summary":"아주 짧은 1문장 요약","leaning":"예: 조건부 합의/팽팽/찬성 우세"}
 }`;
 
     const aiRes = await fetch('https://api.openai.com/v1/responses', {
@@ -83,7 +86,7 @@ ${jury}
       body: JSON.stringify({
         model: context.env.OPENAI_MODEL || 'gpt-5.6-luna',
         input: prompt,
-        max_output_tokens: 1200
+        max_output_tokens: 850
       })
     });
 
