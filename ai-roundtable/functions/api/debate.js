@@ -82,15 +82,16 @@ ${jury}
       },
       body: JSON.stringify({
         model: context.env.OPENAI_MODEL || 'gpt-5.6-luna',
+        reasoning: { effort: 'low' },
         input: prompt,
-        max_output_tokens: 1200
+        max_output_tokens: 900
       })
     });
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       console.error('OpenAI error', aiRes.status, errText.slice(0, 500));
-      return new Response(JSON.stringify({ error: 'AI request failed' }), { status: 502, headers });
+      return new Response(JSON.stringify({ error: 'AI request failed', status: aiRes.status }), { status: 502, headers });
     }
 
     const raw = await aiRes.json();
@@ -117,8 +118,14 @@ ${jury}
   }
 }
 
-export function onRequestGet() {
-  return new Response(JSON.stringify({ ok: true, service: 'ai-roundtable-debate' }), {
+export function onRequestGet(context) {
+  return new Response(JSON.stringify({
+    ok: true,
+    service: 'ai-roundtable-debate',
+    openaiConfigured: Boolean(context.env.OPENAI_API_KEY),
+    model: context.env.OPENAI_MODEL || 'gpt-5.6-luna',
+    reasoning: 'low'
+  }), {
     status: 200,
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
   });
